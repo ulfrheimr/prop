@@ -1,0 +1,4 @@
+*.pkl
+/data/d/*
+/data/d
+*.DS_Store
