@@ -13,6 +13,7 @@ import os
 import requests
 import time
 import threading
+from pdb import set_trace as bp
 
 import cPickle as pickle
 
@@ -21,15 +22,15 @@ from text_utils import preprocessing
 from text_utils import utils
 from text_utils import indexing
 
-from pdb import set_trace as bp
 
 P = utils.Pool
 corpus = preprocessing.corpus
-indexer = indexing.solr_post.SolrPost("http://localhost:8985/solr/")
 lock = threading.Lock()
 
 
-def index_data(path):
+def index_data(path, url):
+    indexer = indexing.solr_post.SolrPost(url)
+
     docs = []
     files = [os.path.join(path, f) for f
              in os.listdir(path)
@@ -39,7 +40,6 @@ def index_data(path):
         if os.path.splitext(_file)[-1] != "":
             temp_corpus = corpus.unpickle_data(_file)
             docs += temp_corpus
-
 
     for doc in docs:
         print "Posting", doc["url"]
@@ -88,21 +88,27 @@ class DocumentCrawler(P):
     crawled = []
     already_crawled = set()
     batch_size = 50
+
     headers = {"Accept-Encoding": "gzip, deflate, br",
                "Content-Type": "application/json"}
 
-    def __init__(self, path, threadNames=["t1"], onFinish=None):
+    def __init__(self, dest_path, species_file, url, split_size = 10, threadNames=["t1"], onFinish=None):
         self.corpus_serial = 1
+        self.corpus_id = os.path.splitext(species_file)[0]\
+            .split("/").pop()
         self.count = 0
-        self.path = path
+        self.dest_path = dest_path
+        self.species_file = species_file
+        self.url = url
         self.set_threads(threadNames)
+        self.split_size = int(split_size)
 
     def read_species(self):
         species = {}
         all_species = set()
         othr_species = set()
 
-        with open('./species.txt') as _f:
+        with open(self.species_file) as _f:
             lines = _f.readlines()
 
             for line in lines:
@@ -138,7 +144,7 @@ class DocumentCrawler(P):
         }
         """
 
-        request = requests.post('http://localhost:4000/graphql',
+        request = requests.post(self.url,
                                 json={'query': query},
                                 headers=self.headers)
 
@@ -156,7 +162,7 @@ class DocumentCrawler(P):
         }
         """
 
-        request = requests.post('http://localhost:4000/graphql',
+        request = requests.post(self.url,
                                 json={'query': query},
                                 headers=self.headers)
 
@@ -181,7 +187,7 @@ class DocumentCrawler(P):
         }
         """
 
-        request = requests.post('http://localhost:4000/graphql',
+        request = requests.post(self.url,
                                 json={'query': query},
                                 headers=self.headers)
 
@@ -243,10 +249,10 @@ class DocumentCrawler(P):
                 if sp not in species:
                     othr_species.add(sp)
 
-        pickle_file = open("./not_found.pkl", 'ab')
+        pickle_file = open(os.path.join(self.dest_path, "not_found.pkl"), 'ab')
         pickle.dump(not_found, pickle_file)
 
-        pickle_file = open("./othr_species.pkl", 'ab')
+        pickle_file = open(os.path.join(self.dest_path, "othr.pkl"), 'ab')
         pickle.dump(othr_species, pickle_file)
 
         return retrieved_docs, species
@@ -260,7 +266,7 @@ class DocumentCrawler(P):
 
         try:
             data_file = open(os.path.join(
-                self.path, "crawled_species.pkl"), "rb")
+                self.dest_path, "crawled.pkl"), "rb")
             previous_docs = pickle.load(data_file)
         except IOError as e:
             print "NOT FOUND PREVIOUS CRAWLED SPECIES"
@@ -328,10 +334,12 @@ class DocumentCrawler(P):
                 self.crawled.append([key, doc])
 
                 with lock:
-                    pickle_file = open("./corpus_species_"+str(self.corpus_serial)+".pkl", 'ab')
+                    pickle_file = open(os.path.join(self.dest_path, "corpus_" +
+                                                    self.corpus_id + "_" +
+                                                    str(self.corpus_serial) + ".pkl"), 'ab')
                     pickle.dump(ret_doc, pickle_file)
 
-                if self.count % 100 == 0:
+                if self.count % self.split_size == 0:
                     print "SELF HEALING, PLEASE CHECK"
                     self.corpus_serial += 1
             except Exception as e:
@@ -340,7 +348,8 @@ class DocumentCrawler(P):
 
     def onFinish(self):
         with lock:
-            pickle_file = open("./already_crawled.pkl", 'w')
+            pickle_file = open(os.path.join(
+                self.dest_path, "crawled.pkl"), 'w')
             pickle.dump(self.crawled, pickle_file)
         print "CORPUS BUILT"
 
@@ -362,9 +371,19 @@ if __name__ == "__main__":
 
     conf_parser.add_argument("-cp", "--corpus_path",
                              help="Path of the file to read all corpus paragraphs", metavar="FILE")
+    conf_parser.add_argument("-sf", "--species_file",
+                             help="Path of the file to read all corpus paragraphs", metavar="FILE")
+    conf_parser.add_argument("-dp", "--dest_path",
+                             help="Path of the file to read all corpus paragraphs", metavar="FILE")
+    conf_parser.add_argument("-u", "--url",
+                             help="Path of the file to read all corpus paragraphs", metavar="FILE")
+
+    conf_parser.add_argument("-sp", "--split",
+                             help="Path of the file to read all corpus paragraphs", metavar="FILE")
 
     args, remaining_argv = conf_parser.parse_known_args()
 
-    # DocumentCrawler("./").start()
-
-    index_data(args.corpus_path)
+    DocumentCrawler(dest_path=args.dest_path,
+                    species_file=args.species_file,
+                    url=args.url,
+                    split_size=args.sp).start()

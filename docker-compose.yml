@@ -1,0 +1,12 @@
+version:            '2'
+services:
+  mws_graphql:
+    container_name:
+      "mws_graphql"
+    build:
+      context:      ./server/graphql
+    image:
+      "mws_graphql"
+    ports:
+      - "4002:4001"
+    restart:        unless-stopped

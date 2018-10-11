@@ -2,3 +2,4 @@
 /data/d/*
 /data/d
 *.DS_Store
+/server/apollo/node_modules

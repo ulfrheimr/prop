@@ -1,0 +1,19 @@
+{
+  "name": "apollo",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "apollo-datasource-rest": "^0.1.5",
+    "apollo-server": "^2.1.0",
+    "apollo-server-express": "^2.1.0",
+    "cors": "^2.8.4",
+    "graphql": "^14.0.2"
+  }
+}
