@@ -3,7 +3,7 @@
 import sys
 
 sys.path.append('../')
-sys.path.append('../../text_utils')
+sys.path.append('../text_utils')
 
 import argparse
 import collections
@@ -87,12 +87,11 @@ def index_data(path, url):
 class DocumentCrawler(P):
     crawled = []
     already_crawled = set()
-    batch_size = 50
 
     headers = {"Accept-Encoding": "gzip, deflate, br",
                "Content-Type": "application/json"}
 
-    def __init__(self, dest_path, species_file, url, split_size = 10, threadNames=["t1"], onFinish=None):
+    def __init__(self, dest_path, species_file, url, split_size=10, batch_size=50, threadNames=["t1"], onFinish=None):
         self.corpus_serial = 1
         self.corpus_id = os.path.splitext(species_file)[0]\
             .split("/").pop()
@@ -100,6 +99,7 @@ class DocumentCrawler(P):
         self.dest_path = dest_path
         self.species_file = species_file
         self.url = url
+        self.batch_size = int(batch_size)
         self.set_threads(threadNames)
         self.split_size = int(split_size)
 
@@ -264,14 +264,15 @@ class DocumentCrawler(P):
 
         retrieved_docs, species = self.get_documents()
 
-        try:
-            data_file = open(os.path.join(
-                self.dest_path, "crawled.pkl"), "rb")
-            previous_docs = pickle.load(data_file)
-        except IOError as e:
-            print "NOT FOUND PREVIOUS CRAWLED SPECIES"
-        except Exception as e:
-            raise
+        # try:
+        #     data_file = open(os.path.join(
+        #         self.dest_path, "crawled.pkl"), "rb")
+        #     previous_docs = pickle.load(data_file)
+        # except IOError as e:
+        #     print "NOT FOUND PREVIOUS CRAWLED SPECIES"
+        # except Exception as e:
+        #     raise
+
 
         for doc in retrieved_docs.items():
             key = doc[0]
@@ -380,10 +381,13 @@ if __name__ == "__main__":
 
     conf_parser.add_argument("-sp", "--split",
                              help="Path of the file to read all corpus paragraphs", metavar="FILE")
+    conf_parser.add_argument("-b", "--batch_size",
+                             help="Path of the file to read all corpus paragraphs", metavar="FILE")
 
     args, remaining_argv = conf_parser.parse_known_args()
 
     DocumentCrawler(dest_path=args.dest_path,
                     species_file=args.species_file,
                     url=args.url,
-                    split_size=args.sp).start()
+                    split_size=args.split,
+                    batch_size=args.batch_size).start()

@@ -33,7 +33,7 @@ server.applyMiddleware({
 });
 
 app.listen({
-  port: 4001
+  port: 4002
 }, () => {
   console.log('Apollo Server on http://localhost:4001/graphql');
 });

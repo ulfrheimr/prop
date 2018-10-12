@@ -2,8 +2,8 @@
 # -*- coding: utf-8 -*-
 import sys
 
-sys.path.append('../../')
-sys.path.append('../../text_utils')
+sys.path.append('../')
+sys.path.append('../text_utils')
 
 import argparse
 import collections
@@ -44,7 +44,6 @@ stop_words.extend(['from', 'subject', 're', 'edu', 'use'])
 
 def sent_to_words(sentences):
     for sentence in sentences:
-
         try:
             # deacc=True removes punctuations
             s = unidecode.unidecode(sentence)
@@ -108,8 +107,6 @@ def make(corpus_path, dest_path, num_topics=50, passes=10):
     corpus_id = corpus_path.split("/").pop().replace('.pkl', "")
     cfname = os.path.join(dest_path, "lda_" + corpus_id)
     data_words = create_data_words(corpus_path)
-
-    bp()
 
     print "MAKING GRAM MODELS"
     # Build the bigram and trigram models
